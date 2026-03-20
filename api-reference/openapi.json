@@ -1,216 +1,125 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
-    "license": {
-      "name": "MIT"
-    },
+    "title": "Polymarket Account Analyzer API",
+    "description": "只读 REST API：钱包分析报告（AnalyzeReport JSON）与榜单。由 `polymarket-account-analyzer serve` 提供。",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
-    }
-  ],
-  "security": [
-    {
-      "bearerAuth": []
+      "url": "http://127.0.0.1:3000",
+      "description": "本地默认（serve --bind 127.0.0.1:3000）"
     }
   ],
   "paths": {
-    "/plants": {
+    "/analyze/{wallet}": {
       "get": {
-        "description": "Returns all plants from the system that the user has access to",
+        "summary": "分析钱包",
+        "description": "返回完整 AnalyzeReport JSON（`application/json`）。路径参数为 Polygon 上 `0x` 钱包地址，一般无需对 `0x` 再做 URL 编码。查询参数与 CLI `analyze` 的当次开关一致。",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "path",
+            "required": true,
+            "description": "钱包地址，例如 0x5924…",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "no_cache",
+            "in": "query",
+            "description": "为 true 时跳过 Postgres 报告缓存",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "with_subgraph",
+            "in": "query",
+            "description": "当次启用 Goldsky 子图拉取",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "no_subgraph",
+            "in": "query",
+            "description": "当次关闭子图",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "subgraph_cap_rows",
+            "in": "query",
+            "description": "子图每条流最大行数封顶（整数）",
+            "schema": { "type": "integer", "minimum": 0 }
+          },
+          {
+            "name": "with_reconciliation",
+            "in": "query",
+            "description": "当次启用对账摘要",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "no_reconciliation",
+            "in": "query",
+            "description": "当次关闭对账",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "with_canonical",
+            "in": "query",
+            "description": "当次启用规范层合并并写 PG（需数据库）",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "no_canonical",
+            "in": "query",
+            "description": "当次关闭规范层",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "no_persist_raw",
+            "in": "query",
+            "description": "当次不写 raw 表",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AnalyzeReport JSON（schema_version 2.x）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "结构化报告，含 lifetime、market_distribution、strategy_inference、frontend 等字段",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leaderboard": {
+      "get": {
+        "summary": "榜单",
+        "description": "返回首页榜单 JSON；需要已配置的 PostgreSQL 与榜单数据。",
         "parameters": [
           {
             "name": "limit",
             "in": "query",
-            "description": "The maximum number of results to return",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
+            "description": "返回条数，默认 30，范围 1～100",
+            "schema": { "type": "integer", "default": 30, "minimum": 1, "maximum": 100 }
           }
         ],
         "responses": {
           "200": {
-            "description": "Plant response",
+            "description": "榜单 JSON",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "type": "object",
+                  "additionalProperties": true
                 }
               }
             }
           }
         }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
-        "requestBody": {
-          "description": "Plant to add to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of plant to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
-          },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
-          }
-        }
-      },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
-          },
-          {
-            "required": [
-              "id"
-            ],
-            "type": "object",
-            "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          }
-        ]
-      },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "message": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
       }
     }
   }

@@ -1,0 +1,35 @@
+---
+title: 'GET /analyze/:wallet'
+openapi: 'GET /analyze/{wallet}'
+---
+
+完整 **`AnalyzeReport`** JSON，与 CLI **`analyze <wallet>`** 在相同配置与查询参数下语义一致。
+
+## 路径
+
+- **`wallet`**：`0x` 开头的地址；直接写在路径中即可，避免破坏路径的额外编码。
+
+## 与 CLI 对齐的查询参数（可选）
+
+| 参数 | 说明 |
+| --- | --- |
+| `no_cache` | 跳过报告缓存 |
+| `with_subgraph` / `no_subgraph` | 子图开关 |
+| `subgraph_cap_rows` | 子图每流行数上限 |
+| `with_reconciliation` / `no_reconciliation` | 对账开关 |
+| `with_canonical` / `no_canonical` | 规范层落库开关 |
+| `no_persist_raw` | 当次不写 raw |
+
+布尔值常用 **`true`** / **`false`**。
+
+## 示例
+
+```bash
+curl -s "http://127.0.0.1:3000/analyze/0x5924ca480d8b08cd5f3e5811fa378c4082475af6" | jq .
+curl -s "http://127.0.0.1:3000/analyze/0x5924ca480d8b08cd5f3e5811fa378c4082475af6?no_cache=true" | jq .
+curl -s "http://127.0.0.1:3000/analyze/0x5924ca480d8b08cd5f3e5811fa378c4082475af6?with_subgraph=true&with_reconciliation=true" | jq .
+```
+
+## 未提供 HTTP 的能力
+
+**`report-from-canonical-run`**、**`export-ambiguous`**、**`set-ambiguous-review`** 等仅支持 CLI；无对应 REST 路由。

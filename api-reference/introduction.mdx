@@ -1,33 +1,32 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: API 概览
+description: 只读 HTTP 接口 — 钱包分析报告与 Postgres 榜单。
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+本服务由 **`polymarket-account-analyzer serve`** 提供，默认监听 **`127.0.0.1:3000`**（可通过 `--bind` 修改）。
 
-## Welcome
+## 认证
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+当前端点均为 **公开只读**，无需 Bearer Token 或 API Key。上游 Polymarket **Data API** 亦为公开接口。
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+## 端点一览
 
-## Authentication
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | **`/analyze/{wallet}`** | 返回完整 **AnalyzeReport** JSON |
+| `GET` | **`/leaderboard`** | 首页榜单（需 **Postgres**）；`limit` 默认 30，范围 1～100 |
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+## OpenAPI
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
-```
+端点详情页与 API Playground 使用 **`api-reference/openapi.json`**（相对于 Mintlify 项目根目录 `documents/`）。更新 REST 行为时请同步修改该文件与对应 MDX 说明。
+
+## CORS
+
+浏览器直连时需在配置中设置 **`cors_allowed_origins`** 或 **`PAA_CORS_ORIGINS`**（逗号分隔多个 Origin）。未配置则不挂载 CORS 中间件。
+
+## 详细说明
+
+<CardGroup cols={2}>
+  <Card title="GET /analyze/:wallet" icon="chart-line" href="/api-reference/get-analyze-wallet" />
+  <Card title="GET /leaderboard" icon="trophy" href="/api-reference/get-leaderboard" />
+</CardGroup>

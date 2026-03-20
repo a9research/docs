@@ -1,0 +1,66 @@
+---
+title: 架构与数据流
+description: 从 CLI/HTTP 到 Data API、可选子图与 Postgres 的报告构建路径。
+---
+
+## 产品层
+
+CLI **`analyze`** 与 **`GET /analyze/:wallet`** 输出同结构的 **AnalyzeReport** JSON。
+
+```
+┌─────────────────────────────────────────────┐
+│  CLI / GET /analyze/:wallet  →  JSON 报告   │
+└─────────────────────────────────────────────┘
+                    ↑
+         build_report ← Trade 流
+                    ↑
+┌─────────────────────────────────────────────┐
+│  可选：canonical 合并 → canonical_events      │
+└─────────────────────────────────────────────┘
+                    ↑
+┌─────────────────────────────────────────────┐
+│  采集：Data API ∥ Subgraph ∥ Gamma          │
+└─────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────┐
+│  可选 PG：raw_*、markets_dim、report_cache   │
+└─────────────────────────────────────────────┘
+```
+
+## 三条指标计算路径
+
+1. **默认**：使用 Data API 分页 **`/trades`** 在内存中驱动 `build_report`。
+2. **`[analytics].source = "canonical"`**：优先使用当次 run 内存合并的合成 `Trade`（无则回退 Data API）。
+3. **`report-from-canonical-run`**：只读 PG **`canonical_events`**，**无需外网**；`data_lineage.analytics_primary_source = canonical_pg_replay`。
+
+## 数据源（只读）
+
+| 来源 | 用途 |
+| --- | --- |
+| **Data API** | `GET /trades`、`/positions`、`/closed-positions` — 主成交流 |
+| **Gamma** | 市场元信息（如 resolution 相关时间，用于入场—结算分析） |
+| **Goldsky 子图** | 赎回、order fills、PnL `userPositions` 等（可选，需开启） |
+
+历史深度受服务端 **offset 上限**等限制；报告内 **`data_fetch.truncated`** / **`ingestion.truncation`** 会标明截断。
+
+## 报告内容（摘要）
+
+- **lifetime**：笔数、volume、净 PnL、极值、未平仓等  
+- **market_distribution**：按可配置 slug 规则归类 Top 市场类型  
+- **price_buckets / price_buckets_chart**：买入价格分桶  
+- **time_analysis**：UTC 活跃小时、入场相对 resolution 等（依赖元数据时可能部分缺失）  
+- **trading_patterns**：网格倾向、方向偏好、胜率等  
+- **strategy_inference**：`primary_style`、`rule_json`、`pseudocode`  
+- **frontend**：大单、最近成交、持仓等供前端展示  
+
+完整字段与 **schema 2.x** 说明见仓库 **[README — 报告 JSON](https://github.com/a9research/Polymarket-Analyzer/blob/main/README.md)**。
+
+## 相关命令（CLI 独有）
+
+| 命令 | 说明 |
+| --- | --- |
+| `export-ambiguous` | 导出对账模糊队列（需 PG） |
+| `set-ambiguous-review` | 更新复核状态 |
+| `report-from-canonical-run` | 从 PG 重放报告（无外网） |
+
+当前 **无** 与上述命令等价的 HTTP 接口。

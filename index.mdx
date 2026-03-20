@@ -1,97 +1,100 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: 概览
+description: 只读分析任意 Polymarket 钱包：公开 Data API、多维报告与策略反推；CLI 与 Axum REST API。
 ---
 
-## Setting up
+**Polymarket Account Analyzer** 是一款 **只读** 的 Rust 工具：输入任意 Polymarket 钱包地址，从公开 [Data API](https://data-api.polymarket.com)（及可选 Gamma、Goldsky 子图）拉取数据，生成结构化 **AnalyzeReport** JSON，并支持 **命令行** 与 **`GET /analyze/:wallet`**。不涉及下单、签名或私钥。
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
+<Card title="快速开始" icon="rocket" href="/quickstart" horizontal>
+  克隆仓库、编译、运行一次分析与本地 API。
 </Card>
 
-## Make it yours
+## 产品能力
 
-Design a docs site that looks great and empowers your users.
+<CardGroup cols={2}>
+  <Card title="全市场类型" icon="chart-network">
+    不限于 5 分钟市场：BTC/ETH 短线、1h、daily、事件、政治、体育等均可纳入统计。
+  </Card>
+  <Card title="多维报告" icon="chart-column">
+    Lifetime、市场分布、价格分桶、UTC 活跃时段、交易模式、胜率与策略反推（`rule_json` + 伪代码）。
+  </Card>
+  <Card title="CLI + HTTP" icon="terminal">
+    `analyze` 输出 stdout 或 `--out`；`serve` 提供 REST，便于前端或脚本集成。
+  </Card>
+  <Card title="可选 Postgres" icon="database">
+    报告缓存、raw / canonical 落库、对账摘要、榜单 `GET /leaderboard`（需数据库）。
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+## 你能得到什么
 
-## Create beautiful pages
+| 能力 | 说明 |
+| --- | --- |
+| **分析引擎** | 基于 Data API `trades` 主路径；可选子图赎回 / fills / PnL 与用户仓位 |
+| **对账与血缘** | v0/v1 对账、`quality_alert`、报告内 `provenance` / `data_lineage` |
+| **报告模式** | 默认内存 Data API；`analytics.source = canonical` 或 `report-from-canonical-run`（PG 重放） |
+| **输出形态** | `schema_version` 2.x JSON；含 `frontend` 块（大单、持仓、最近成交等）供 UI 使用 |
 
-Everything you need to create world-class documentation.
+<Warning>
+  **非交易产品**：不提供 CLOB 下单、Builder 归因或 Gasless Relayer。EOA / Safe 用户若要在链上交易，请使用 [Polymarket Builder 文档](https://docs.polymarket.com/builders/overview) 中的官方客户端与 Relayer 方案。
+</Warning>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## 工作流程
 
-## Need inspiration?
+<Steps>
+  <Step title="提供钱包地址">
+    CLI：`analyze 0x…`；HTTP：`GET /analyze/0x…`（路径参数勿对 `0x` 做多余编码）。
+  </Step>
+  <Step title="拉取公开数据">
+    分页请求 Data API；按需叠加 Gamma 元数据、子图与可选 PG 持久化。
+  </Step>
+  <Step title="构建报告">
+    聚合指标、模式检测、策略推断；写入缓存（若启用 Postgres）。
+  </Step>
+  <Step title="消费结果">
+    CLI 打印或写文件；HTTP 返回 JSON；下游前端（如独立 Next 应用）可直接绑定字段。
+  </Step>
+</Steps>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+## 上手步骤
+
+<Steps>
+  <Step title="获取源码">
+    在 monorepo 中进入 **`polymarket-account-analyzer/`**（或克隆 [Polymarket-Analyzer](https://github.com/a9research/Polymarket-Analyzer) 仓库根目录）。
+  </Step>
+  <Step title="编译">
+    `cargo build --release`，二进制名为 **`polymarket-account-analyzer`**。
+  </Step>
+  <Step title="跑一次分析">
+    `cargo run --release -- analyze <wallet> --out report.json`（可选 `--config`、`--with-subgraph` 等）。
+  </Step>
+  <Step title="（可选）启动 API">
+    `cargo run --release -- serve --bind 127.0.0.1:3000`，详见 [API 参考](/api-reference/introduction)。
+  </Step>
+</Steps>
+
+## 技术栈与仓库
+
+<CardGroup cols={2}>
+  <Card title="Rust + Axum" icon="code" href="/architecture">
+    tokio、reqwest（rustls）、serde、chrono、anyhow、clap 4；HTTP 服务 Axum 0.7。
+  </Card>
+  <Card title="配置与环境变量" icon="gear" href="/configuration">
+    `config.toml` + `PAA_*` 前缀环境变量；Docker Compose 与 `DATABASE_URL` 说明。
+  </Card>
+  <Card title="HTTP API" icon="browser" href="/api-reference/introduction">
+    `GET /analyze/:wallet`、`GET /leaderboard`；查询参数与 CLI 标志对齐。
+  </Card>
+  <Card title="官方 Polymarket 文档" icon="arrow-up-right-from-square" href="https://docs.polymarket.com">
+    市场数据、子图与 Builder 程序（与本工具「只读分析」互补）。
+  </Card>
+</CardGroup>
+
+## 下一步
+
+<CardGroup cols={2}>
+  <Card title="快速开始" icon="bolt" href="/quickstart" />
+  <Card title="架构与数据流" icon="sitemap" href="/architecture" />
+  <Card title="配置参考" icon="sliders" href="/configuration" />
+  <Card title="OpenAPI" icon="file-code" href="/api-reference/introduction" />
+</CardGroup>

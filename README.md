@@ -1,55 +1,25 @@
-# Mintlify Starter Kit
+# Polymarket Account Analyzer — 文档站
 
-Use the starter kit to get your docs deployed and ready to customize.
+本目录为 [Mintlify](https://mintlify.com) 项目，对外说明 **Polymarket Account Analyzer**（只读钱包分析、CLI + Axum API）。
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+- **入口配置**：`docs.json`（站点名、导航、主题色）
+- **指南页**：`index.mdx`、`quickstart.mdx`、`architecture.mdx`、`configuration.mdx`、`development.mdx`
+- **API**：`api-reference/openapi.json` + `api-reference/*.mdx`
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
+## 本地预览
 
 ```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
 npm i -g mint
-```
-
-Run the following command at the root of your documentation, where your `docs.json` is located:
-
-```
+cd documents
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+打开 **http://localhost:3000**。若与本仓库 **`polymarket-account-analyzer serve`** 同时运行，请为其中之一更换端口（二者默认均可能占用 3000）。
 
-## Publishing changes
+## 与源码的关系
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+分析器实现位于 monorepo 的 **`../polymarket-account-analyzer/`**；权威用法与配置细节以该目录下的 **[README](https://github.com/a9research/Polymarket-Analyzer/blob/main/README.md)** 为准。文档站侧重结构与快速上手，版本化细节以源码及主 README 为准。
 
-## Need help?
+## 发布
 
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+将本目录推送到已绑定 Mintlify 的 Git 仓库后，由 Mintlify 构建部署；详见 [Mintlify 文档](https://mintlify.com/docs)。

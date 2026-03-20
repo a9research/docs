@@ -1,0 +1,67 @@
+---
+title: 配置
+description: config.toml、PAA_ 环境变量、DATABASE_URL 与 Docker 要点。
+---
+
+## 配置文件如何生效
+
+程序 **不会**自动读取当前目录下的 `config.toml`。只有传入 **`--config /path/to/file.toml`** 时才会读取并 **在默认值上合并覆盖**。
+
+| 运行方式 | 配置来源 |
+| --- | --- |
+| 不写 `--config` | 内置默认值；数据库仅能通过 **`DATABASE_URL`**（若设置） |
+| `--config config.toml` | TOML 覆盖默认值；**`database_url` 非空时优先于** `DATABASE_URL` |
+
+带 `cargo run` 时建议使用 **`--`** 分隔：
+
+```bash
+cargo run --release -- --config config.toml analyze 0x… --out report.json
+```
+
+## 常用环境变量
+
+### 标准（无 PAA\_ 前缀）
+
+| 变量 | 作用 |
+| --- | --- |
+| **`DATABASE_URL`** | PostgreSQL 连接串；启用缓存、raw、canonical、榜单等 |
+| **`RUST_LOG`** | 日志级别，如 `info`、`polymarket_account_analyzer=debug` |
+
+### `PAA_*` 业务覆盖
+
+前缀用于避免与系统环境变量冲突。生效顺序：**代码默认 → `--config` TOML → `PAA_*`（若设置）**；单次 **`analyze` / HTTP query** 仍可覆盖部分开关（如 `with_subgraph`）。
+
+示例（完整列表见仓库 README）：
+
+| 变量 | 含义（摘要） |
+| --- | --- |
+| **`PAA_TRADES_PAGE_LIMIT`** | Data API 每页条数 / offset 步长（1～10000） |
+| **`PAA_RATE_LIMIT_MS`** | 每页请求间隔，防限流 |
+| **`PAA_CACHE_TTL_SEC`** | 报告缓存 TTL |
+| **`PAA_SUBGRAPH_ENABLED`** | 默认是否拉子图 |
+| **`PAA_CANONICAL_ENABLED`** | 规范层合并并写 PG |
+| **`PAA_CORS_ORIGINS`** | 逗号分隔的浏览器 Origin，供 `serve` CORS |
+
+## TOML 主要块
+
+| 块 | 作用 |
+| --- | --- |
+| **`[subgraph]`** | 子图 URL、分页、封顶、超时重试 |
+| **`[reconciliation]`** | 对账开关与容差 |
+| **`[analytics]`** | `source`：`data_api` / `canonical`；`canonical_shadow` |
+| **`[ingestion]`** | `persist_raw`、Gamma slug 上限、增量 trades、wallet 快照等 |
+| **`[canonical]`** | 规范层与 `markets_dim` 补全 |
+| **`[market_type]`** | slug → 市场类型规则（有序匹配） |
+
+模板文件：**`config.example.toml`**、Docker 用 **`config.docker.example.toml`**。
+
+## 与 HTTP / CLI 对齐的当次开关
+
+在 TOML 默认值之上，**单次**分析可通过 CLI 或 query 调整，例如：
+
+- `with_subgraph` / `no_subgraph`
+- `with_reconciliation` / `no_reconciliation`
+- `with_canonical` / `no_canonical`
+- `no_cache`、`subgraph_cap_rows`、`no_persist_raw`
+
+详见 [API 参考 — 分析钱包](/api-reference/get-analyze-wallet) 与仓库 README「功能开关与覆盖」一节。

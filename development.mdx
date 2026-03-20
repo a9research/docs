@@ -1,94 +1,45 @@
 ---
-title: 'Development'
-description: 'Preview changes locally to update your docs'
+title: 开发
+description: 参与 Rust 分析器开发，以及本地预览本 Mintlify 文档站。
 ---
 
-<Info>
-  **Prerequisites**:
-  - Node.js version 19 or higher
-  - A docs repository with a `docs.json` file
-</Info>
+## Rust 项目（分析器）
 
-Follow these steps to install and run Mintlify on your operating system.
+在 **`polymarket-account-analyzer/`** 目录：
+
+```bash
+cargo test
+cargo clippy
+cargo build --release
+```
+
+回归与合并相关测试见 `tests/`。配置、子图与 PG 迁移说明以仓库根目录 **README** 为准。
+
+## 本文档站（Mintlify）
+
+编辑 **`documents/`** 下的 MDX 与 **`docs.json`** 后，本地预览：
 
 <Steps>
-<Step title="Install the Mintlify CLI">
-
-```bash
-npm i -g mint
-```
-</Step>
-
-<Step title="Preview locally">
-
-Navigate to your docs directory where your `docs.json` file is located, and run the following command:
-
-```bash
-mint dev
-```
-
-A local preview of your documentation will be available at `http://localhost:3000`.
-
-</Step>
+  <Step title="安装 CLI">
+    ```bash
+    npm i -g mint
+    ```
+  </Step>
+  <Step title="在 documents 目录启动预览">
+    ```bash
+    cd documents
+    mint dev
+    ```
+    默认 **http://localhost:3000**（若端口占用会自动递增）。
+  </Step>
 </Steps>
 
-## Custom ports
+可选：`mint dev --port 3333`、`mint broken-links` 检查死链。
 
-By default, Mintlify uses port 3000. You can customize the port Mintlify runs on by using the `--port` flag. For example, to run Mintlify on port 3333, use this command:
+<Tip>
+  分析器 API 默认也使用 **3000** 端口；同时跑 **`serve`** 与 **`mint dev`** 时请为其中之一换端口，避免冲突。
+</Tip>
 
-```bash
-mint dev --port 3333
-```
+## 部署文档
 
-If you attempt to run Mintlify on a port that's already in use, it will use the next available port:
-
-```md
-Port 3000 is already in use. Trying 3001 instead.
-```
-
-## Mintlify versions
-
-Please note that each CLI release is associated with a specific version of Mintlify. If your local preview does not align with the production version, please update the CLI:
-
-```bash
-npm mint update
-```
-
-## Validating links
-
-The CLI can assist with validating links in your documentation. To identify any broken links, use the following command:
-
-```bash
-mint broken-links
-```
-
-## Deployment
-
-If the deployment is successful, you should see the following:
-
-<Frame>
-  <img src="/images/checks-passed.png" alt="Screenshot of a deployment confirmation message that says All checks have passed." style={{ borderRadius: '0.5rem' }} />
-</Frame>
-
-## Code formatting
-
-We suggest using extensions on your IDE to recognize and format MDX. If you're a VSCode user, consider the [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) for syntax highlighting, and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) for code formatting.
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title='Error: Could not load the "sharp" module using the darwin-arm64 runtime'>
-
-    This may be due to an outdated version of node. Try the following:
-    1. Remove the currently-installed version of the CLI: `npm remove -g mint`
-    2. Upgrade to Node v19 or higher.
-    3. Reinstall the CLI: `npm i -g mint`
-  </Accordion>
-
-  <Accordion title="Issue: Encountering an unknown error">
-  
-    Solution: Go to the root of your device and delete the `~/.mintlify` folder. Then run `mint dev` again.
-  </Accordion>
-</AccordionGroup>
-
-Curious about what changed in the latest CLI version? Check out the [CLI changelog](https://www.npmjs.com/package/mintlify?activeTab=versions).
+将 **`documents`** 推送到已连接 [Mintlify](https://mintlify.com) 的仓库后，由 Mintlify 托管构建与发布；具体以你方组织在 Mintlify Dashboard 中的项目设置为准。
