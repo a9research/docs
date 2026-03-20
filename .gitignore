@@ -1,0 +1,26 @@
+# Mintlify / Node（本地预览、CI 若在此目录装依赖）
+node_modules/
+
+# 环境变量（勿提交密钥；可保留 .env.example）
+.env
+.env.local
+.env.*.local
+
+# OS / 编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 草稿（与 .mintignore 中 drafts 一致，Git 侧也忽略）
+drafts/
+*.draft.mdx
