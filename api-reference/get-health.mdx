@@ -1,0 +1,21 @@
+---
+title: 'GET /health'
+openapi: 'GET /health'
+---
+
+用于 **探活** 与防火墙/端口检测：**不访问 PostgreSQL、不请求 Data API**，响应极快。
+
+部署或排查时优先使用本接口；**`GET /analyze/{wallet}`** 可能耗时数分钟，不适合作为「服务是否在跑」的唯一检测方式。
+
+## 示例
+
+```bash
+curl -sS --max-time 5 http://127.0.0.1:3000/health
+# 期望输出一行: ok
+```
+
+公网测试（将 IP 换成你的 VPS）：
+
+```bash
+curl -v --max-time 10 http://54.36.179.124:3000/health
+```

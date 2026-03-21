@@ -39,6 +39,7 @@
           {
             "group": "端点",
             "pages": [
+              "api-reference/get-health",
               "api-reference/get-analyze-wallet",
               "api-reference/get-leaderboard"
             ]

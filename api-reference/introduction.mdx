@@ -13,7 +13,8 @@ description: 只读 HTTP 接口 — 钱包分析报告与 Postgres 榜单。
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| `GET` | **`/analyze/{wallet}`** | 返回完整 **AnalyzeReport** JSON |
+| `GET` | **`/health`** | 探活，返回纯文本 **`ok`**（不访问 DB / 外网） |
+| `GET` | **`/analyze/{wallet}`** | 返回完整 **AnalyzeReport** JSON（可能很慢） |
 | `GET` | **`/leaderboard`** | 首页榜单（需 **Postgres**）；`limit` 默认 30，范围 1～100 |
 
 ## OpenAPI
@@ -27,6 +28,7 @@ description: 只读 HTTP 接口 — 钱包分析报告与 Postgres 榜单。
 ## 详细说明
 
 <CardGroup cols={2}>
+  <Card title="GET /health" icon="heart-pulse" href="/api-reference/get-health" />
   <Card title="GET /analyze/:wallet" icon="chart-line" href="/api-reference/get-analyze-wallet" />
   <Card title="GET /leaderboard" icon="trophy" href="/api-reference/get-leaderboard" />
 </CardGroup>
