@@ -3,7 +3,7 @@
 本目录为 [Mintlify](https://mintlify.com) 项目，对外说明 **Polymarket Account Analyzer**（只读钱包分析、CLI + Axum API）。
 
 - **入口配置**：`docs.json`（站点名、导航、主题色）
-- **指南页**：`index.mdx`、`quickstart.mdx`、`architecture.mdx`、`configuration.mdx`、`development.mdx`
+- **指南页**：`index.mdx`、`quickstart.mdx`、`architecture.mdx`、`configuration.mdx`、`deployment-server.mdx`、`development.mdx`
 - **API**：`api-reference/openapi.json` + `api-reference/*.mdx`
 
 ## 本地预览

@@ -1,0 +1,188 @@
+---
+title: 服务器部署（Postgres Docker + 宿主机 Rust）
+description: 在 VPS 上仅用 Docker 运行 PostgreSQL，Rust API 运行在宿主机，绑定域名 api.analyzer.forevex.trade 与 HTTPS。
+---
+
+## 架构
+
+| 组件 | 运行方式 | 说明 |
+|------|----------|------|
+| **PostgreSQL** | Docker Compose（仅 `postgres` 服务） | 数据持久化在命名卷；`5432` 只绑定 **127.0.0.1** |
+| **Rust API** | 宿主机 `cargo build --release` 或 release 二进制 | 监听 **127.0.0.1:3000**（或你指定的端口） |
+| **HTTPS / 域名** | **Caddy** 或 **Nginx** 反代 | 终止 TLS，转发到本机 `127.0.0.1:3000` |
+
+仓库内 Compose 文件：**`polymarket-account-analyzer/docker-compose.postgres-only.yml`**。
+
+---
+
+## 1. 准备服务器
+
+- 一台 Linux VPS（Ubuntu 22.04/24.04 等），已开放 **22**（SSH）、**80**、**443**（防火墙 / 安全组）。
+- 安装 **Docker** 与 **Docker Compose V2**：见 [Docker 官方文档](https://docs.docker.com/engine/install/)。
+- 安装 **Rust**（在服务器上编译）或在本机构建 **linux 目标** 后上传二进制（见下文「跨平台编译」）。
+
+---
+
+## 2. DNS：api.analyzer.forevex.trade
+
+在域名 DNS 控制台（Cloudflare、阿里云等）添加记录：
+
+| 类型 | 名称 | 值 | TTL |
+|------|------|-----|-----|
+| **A** | `api.analyzer`（或按面板要求写 `api.analyzer.forevex.trade` 的子域部分） | **你的 VPS 公网 IPv4** | Auto / 300 |
+| **AAAA**（若有 IPv6） | 同上 | VPS IPv6 | 同上 |
+
+验证（生效可能需要几分钟）：
+
+```bash
+dig +short api.analyzer.forevex.trade A
+```
+
+---
+
+## 3. 仅启动 PostgreSQL（Docker）
+
+在服务器上克隆或上传代码后：
+
+```bash
+cd polymarket-account-analyzer
+
+# 生产务必修改 compose 内 POSTGRES_PASSWORD，或使用 .env + variable substitution
+docker compose -f docker-compose.postgres-only.yml up -d
+docker compose -f docker-compose.postgres-only.yml ps
+```
+
+默认连接串（**生产请改密码**）：
+
+```bash
+export DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/polymarket_analyzer"
+```
+
+首次启动后，Rust 程序在连接时会执行 `init_schema` 建表。
+
+---
+
+## 4. 构建并运行 Rust API（宿主机）
+
+### 4.1 在服务器上直接编译
+
+```bash
+cd polymarket-account-analyzer
+cargo build --release
+```
+
+可执行文件：`target/release/polymarket-account-analyzer`。
+
+### 4.2 临时前台运行（验证）
+
+```bash
+export DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/polymarket_analyzer"
+export RUST_LOG=info
+./target/release/polymarket-account-analyzer serve --bind 127.0.0.1:3000
+```
+
+另开终端：
+
+```bash
+curl -sS "http://127.0.0.1:3000/analyze/0x你的钱包地址" | head -c 200
+```
+
+### 4.3 可选：自定义配置
+
+```bash
+cp config.example.toml /etc/forevex-analyzer/config.toml
+# 编辑 database_url 或依赖环境变量 DATABASE_URL（见 README 优先级）
+./target/release/polymarket-account-analyzer --config /etc/forevex-analyzer/config.toml serve --bind 127.0.0.1:3000
+```
+
+### 4.4 跨平台编译（在 Mac 上构建 Linux 二进制）
+
+```bash
+rustup target add x86_64-unknown-linux-gnu
+cargo build --release --target x86_64-unknown-linux-gnu
+# 产物：target/x86_64-unknown-linux-gnu/release/polymarket-account-analyzer
+```
+
+将二进制 scp 到服务器后同样需要 **glibc 兼容**；若链接失败，可在服务器上编译或使用 `cross` 工具链。
+
+---
+
+## 5. systemd 常驻（示例）
+
+创建 `/etc/systemd/system/polymarket-analyzer.service`：
+
+```ini
+[Unit]
+Description=Polymarket Account Analyzer API
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_LINUX_USER
+WorkingDirectory=/opt/forevex/polymarket-account-analyzer
+Environment=DATABASE_URL=postgres://postgres:YOUR_DB_PASSWORD@127.0.0.1:5432/polymarket_analyzer
+Environment=RUST_LOG=info
+ExecStart=/opt/forevex/polymarket-account-analyzer/polymarket-account-analyzer serve --bind 127.0.0.1:3000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now polymarket-analyzer
+sudo systemctl status polymarket-analyzer
+```
+
+把路径、`User`、`DATABASE_URL` 换成你的实际值；**不要将含密码的 unit 提交到 Git**。
+
+---
+
+## 6. HTTPS 与域名：Caddy（推荐，自动证书）
+
+安装 [Caddy](https://caddyserver.com/docs/install) 后，例如 `/etc/caddy/Caddyfile` 增加：
+
+```caddyfile
+api.analyzer.forevex.trade {
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+浏览器访问：`https://api.analyzer.forevex.trade/analyze/0x...`
+
+若前端在浏览器直连该 API，需在 Rust 侧配置 **CORS**（`cors_allowed_origins` / `PAA_CORS_ORIGINS`），见主 README。
+
+---
+
+## 7. 备选：Nginx + certbot
+
+使用 Nginx 监听 443，`proxy_pass http://127.0.0.1:3000;`，证书用 **certbot** `--nginx` 模式申请 Let's Encrypt。具体 server 块可参考 Nginx 官方 reverse proxy 文档。
+
+---
+
+## 8. 安全清单
+
+- 修改默认 **`POSTGRES_PASSWORD`**，并同步 **`DATABASE_URL`**。
+- Postgres 仅 **`127.0.0.1:5432`** 暴露，不要映射 `0.0.0.0:5432` 到公网。
+- API 只监听 **127.0.0.1**，由 Caddy/Nginx 对外提供 TLS。
+- 定期 `docker compose pull` 更新 Postgres 镜像；关注上游安全公告。
+- 防火墙仅放行 **22、80、443**（及你需要的端口）。
+
+---
+
+## 9. 与「全套 Docker」对比
+
+| 方式 | Compose 文件 | 适用 |
+|------|----------------|------|
+| Postgres + 容器内 API | `docker-compose.yml` | 一键全容器 |
+| **Postgres only + 宿主机 Rust** | **`docker-compose.postgres-only.yml`** | 便于调试 Rust、自定义 systemd、减少镜像构建 |
+
+更多环境变量与 `PAA_*` 见主站 **配置** 页面与仓库 **README**。

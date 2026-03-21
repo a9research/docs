@@ -15,7 +15,13 @@
         "groups": [
           {
             "group": "开始",
-            "pages": ["index", "quickstart", "architecture", "configuration"]
+            "pages": [
+              "index",
+              "quickstart",
+              "architecture",
+              "configuration",
+              "deployment-server"
+            ]
           },
           {
             "group": "开发与文档站",
